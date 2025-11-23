@@ -24,10 +24,26 @@ jobs:
       - name: Build PDF
         working-directory: paper
         run: |
-          set -e
-          latexmk -pdf -interaction=nonstopmode paper.tex
+          set -euo pipefail
+          # Capture latexmk output to build.log and preserve exit code
+          bash -lc "latexmk -pdf -interaction=nonstopmode paper.tex 2>&1 | tee build.log; exit \${PIPESTATUS[0]}"
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-build-log
+          path: paper/build.log
+
+      - name: Upload built PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: paper/paper.pdf
 
       - name: Commit built PDF
+        if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
