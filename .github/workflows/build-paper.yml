@@ -2,53 +2,44 @@ name: Build Paper PDF
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'paper/**'
-      - '.github/workflows/build-paper.yml'
+      - 'paper/**.tex'
+      - 'paper/**.bib'
+      - 'paper/**.png'
+      - 'paper/**.jpg'
+  workflow_dispatch:
 
 jobs:
-  build:
+  build_latex:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@v3
         with:
-          fetch-depth: 0
-          persist-credentials: true
+          root_file: paper.tex
+          working_directory: paper/
+          latexmk_use_xelatex: false
+          latexmk_shell_escape: true
+          extra_system_packages: "pygments-routers-lexers"
 
-      - name: Install TeX packages
+      - name: Check if PDF was generated
         run: |
-          sudo apt-get update
-          sudo apt-get install -y latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-bibtex-extra texlive-fonts-extra
+          if [ -f paper/paper.pdf ]; then
+            echo "PDF generated successfully."
+          else
+            echo "PDF generation failed."
+            exit 1
+          fi
 
-      - name: Build PDF
-        working-directory: paper
-        run: |
-          set -euo pipefail
-          # Capture latexmk output to build.log and preserve exit code
-          bash -lc "latexmk -pdf -interaction=nonstopmode paper.tex 2>&1 | tee build.log; exit \${PIPESTATUS[0]}"
-
-      - name: Upload build log
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Commit and Push PDF
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          name: paper-build-log
-          path: paper/build.log
-
-      - name: Upload built PDF
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: paper-pdf
-          path: paper/paper.pdf
-
-      - name: Commit built PDF
-        if: success()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add paper/paper.pdf || true
-          git commit -m "CI: build paper.pdf" || echo "No changes to commit"
-          git push origin HEAD:main || echo "Push failed"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          commit_message: "Docs: auto-generate paper PDF [skip ci]"
+          file_pattern: 'paper/*.pdf'
