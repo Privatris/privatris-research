@@ -1,0 +1,38 @@
+name: Build Paper PDF
+
+on:
+  push:
+    paths:
+      - 'paper/**'
+      - '.github/workflows/build-paper.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Install TeX packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-bibtex-extra texlive-fonts-extra
+
+      - name: Build PDF
+        working-directory: paper
+        run: |
+          set -e
+          latexmk -pdf -interaction=nonstopmode paper.tex
+
+      - name: Commit built PDF
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add paper/paper.pdf || true
+          git commit -m "CI: build paper.pdf" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Push failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
