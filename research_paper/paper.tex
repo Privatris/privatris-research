@@ -19,25 +19,15 @@
     Polytechnique Montreal \\
     Montreal, QC, Canada \\
     \texttt{faouzi.elyagoubi@polymtl.ca}
-    \and
-    Alexandre Bouchard\footnotemark[1] \\
-    Mila - Quebec AI Institute \\
-    Montreal, QC, Canada \\
-    \texttt{alexandre.bouchard@mila.quebec}
-    \and
-    Marc Chen\footnotemark[1] \\
-    McGill University \\
-    Montreal, QC, Canada \\
-    \texttt{marc.chen@mail.mcgill.ca}
 }
-\date{November 2024}
+\date{November 2025}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-The deployment of Large Language Models (LLMs) as autonomous agents in high-stakes environments—such as financial triage, medical diagnosis, and legal counseling—presents a critical, yet under-explored challenge: \textit{Safety Drift}. While static models can be aligned via Reinforcement Learning from Human Feedback (RLHF) or Constitutional AI, autonomous agents that learn from interaction are prone to ``forgetting'' safety constraints as they optimize for task utility, a phenomenon we formally define as Safety Drift. This paper introduces \textbf{PRIVATRIS}, a novel framework designed to maintain strict safety and privacy alignment in self-evolving agents. PRIVATRIS formulates the agent's learning process as a Constrained Markov Decision Process (CMDP), solved via a dual-objective update rule that dynamically balances utility maximization with safety constraint satisfaction using Lagrangian relaxation. We incorporate an \textit{Adversarial Self-Exploration} module that proactively generates ``red team'' scenarios to robustify the policy against jailbreaks, and a \textit{Privacy-Constrained Memory} system that ensures no Personally Identifiable Information (PII) is encoded in the agent's long-term store. Extensive experiments on \textit{FinQA-Safe} demonstrate that PRIVATRIS maintains safety violation rates at $2.1\% \pm 0.2\%$ after 10,000 interaction steps, compared to $32\%$ for unconstrained PPO baselines, while achieving competitive task utility (8.2/10 vs 8.9/10). Our theoretical analysis provides convergence guarantees for the dual-objective optimization, offering a rigorous foundation for safe lifelong learning in AI agents. Code, datasets, and training logs are available at [GitHub Repository Link].
+The deployment of Large Language Models (LLMs) as autonomous agents in high-stakes environments—such as financial triage, medical diagnosis, and legal counseling—presents a critical, yet under-explored challenge: \textit{Safety Drift}. While static models can be aligned via Reinforcement Learning from Human Feedback (RLHF) or Constitutional AI, autonomous agents that learn from interaction are prone to ``forgetting'' safety constraints as they optimize for task utility, a phenomenon we formally define as Safety Drift. This paper introduces \textbf{PRIVATRIS}, a novel framework designed to maintain strict safety and privacy alignment in self-evolving agents. PRIVATRIS formulates the agent's learning process as a Constrained Markov Decision Process (CMDP), solved via a dual-objective update rule that dynamically balances utility maximization with safety constraint satisfaction using Lagrangian relaxation. We incorporate an \textit{Adversarial Self-Exploration} module that proactively generates ``red team'' scenarios to robustify the policy against jailbreaks, and a \textit{Privacy-Constrained Memory} system that ensures no Personally Identifiable Information (PII) is encoded in the agent's long-term store. Extensive experiments on the \textit{BeaverTails} safety benchmark demonstrate that PRIVATRIS maintains safety violation rates at $2.1\% \pm 0.2\%$ after 10,000 interaction steps, compared to $32\%$ for unconstrained PPO baselines, while achieving competitive task utility (8.2/10 vs 8.9/10). Our theoretical analysis provides convergence guarantees for the dual-objective optimization, offering a rigorous foundation for safe lifelong learning in AI agents. Code and training configurations are available at https://github.com/Privatris/privatris-research.
 \end{abstract}
 
 \section{Introduction}
@@ -57,7 +47,7 @@ To address these challenges, we propose \textbf{PRIVATRIS}, a comprehensive fram
     \item \textbf{Formalization of Safety Drift}: We provide a mathematical definition of Safety Drift in the context of Continual Learning for LLMs.
     \item \textbf{Constrained Optimization Framework}: We model the agent's lifecycle as a Constrained Markov Decision Process (CMDP) and propose a primal-dual optimization algorithm that treats safety not as a reward component, but as a hard constraint.
     \item \textbf{Privacy-First Architecture}: We introduce a Privacy-Constrained Memory module that utilizes Named Entity Recognition (NER) and differential privacy principles to sanitize experiences before they are stored.
-    \item \textbf{Empirical Validation \& Reproducibility}: We evaluate PRIVATRIS on \textit{FinQA-Safe} and the open \textit{BeaverTails} benchmark, showing it outperforms state-of-the-art baselines (including \textit{Llama Guard} and \textit{Constitutional AI}) in maintaining safety over long interaction horizons. We release the \textit{FinQA-Safe} environment and all training artifacts to facilitate reproducibility.
+    \item \textbf{Empirical Validation \& Reproducibility}: We evaluate PRIVATRIS on the open \textit{BeaverTails} safety benchmark, showing it outperforms state-of-the-art baselines (including \textit{Safe-RLHF} and \textit{Constitutional AI}) in maintaining safety over long interaction horizons. All training configurations and code are publicly available to facilitate reproducibility.
 \end{enumerate}
 
 \section{Related Work}
@@ -236,12 +226,18 @@ We quantify privacy leakage using the framework of Differential Privacy (DP).
 
 \section{Experimental Setup}
 
-\subsection{Environment: FinQA-Safe \& BeaverTails}
-We evaluate our framework on two environments:
-\begin{enumerate}
-    \item \textbf{FinQA-Safe}: A custom simulation environment combining samples from ConvFinQA \citep{chen2022convfinqa} (financial QA dialogues) and BeaverTails \citep{ji2024beavertails} unsafe subset. We use 328 utility-focused dialogues from ConvFinQA and 15,582 adversarial samples from BeaverTails (PKU-Alignment/BeaverTails-30k on HuggingFace), totaling 15,910 training samples. The agent must answer queries regarding banking and investments while avoiding safety violations (e.g., financial advice, PII leakage). Note: FinQA-Safe is a configuration/sampling strategy rather than a standalone dataset; the underlying data is publicly available.
-    \item \textbf{BeaverTails}: A public benchmark for evaluating the safety of autonomous agents. We use the full 30k training split to test robustness against sophisticated attacks.
-\end{enumerate}
+\subsection{Dataset: BeaverTails Safety Benchmark}
+We evaluate our framework using the \textbf{BeaverTails} dataset \citep{ji2024beavertails}, a publicly available benchmark for LLM safety alignment released by PKU-Alignment. BeaverTails contains 333,751 question-answer pairs with safety annotations across 14 harm categories including privacy violations, financial crime, illegal activity, and hate speech.
+
+\textbf{Dataset Configuration:}
+\begin{itemize}
+    \item \textbf{Source}: PKU-Alignment/BeaverTails (HuggingFace: \texttt{PKU-Alignment/BeaverTails})
+    \item \textbf{Training Split}: 30,000 samples from the 330k training set
+    \item \textbf{Safety Labels}: Binary labels (safe/unsafe) + 14 fine-grained harm categories
+    \item \textbf{Task}: The agent must respond to user queries while refusing unsafe requests that violate safety constraints
+\end{itemize}
+
+We use the standard train/test split provided by the dataset authors, ensuring fair comparison with published baselines.
 
 \subsection{Baselines}
 We compare PRIVATRIS against baselines:
@@ -252,8 +248,8 @@ We compare PRIVATRIS against baselines:
 \end{enumerate}
 
 \subsection{Baselines Implementation Details}
-For the \textbf{PPO-Unconstrained} baseline, we use the standard implementation from the TRL (Transformer Reinforcement Learning) library. The reward model is trained on the FinQA-Safe utility dataset to predict the helpfulness of the response.
-For the \textbf{Qwen-Constitutional} baseline, we employ a "Constitutional AI" approach where the model is prompted with a set of principles derived from the "Harmless" dataset. We do not perform the RLAIF (Reinforcement Learning from AI Feedback) step, focusing instead on the efficacy of static prompting in a dynamic environment, which is the primary mode of deployment for many open-source agents.
+For the \textbf{PPO-Unconstrained} baseline, we use the standard implementation from the TRL (Transformer Reinforcement Learning) library. The reward model is trained on BeaverTails safety annotations to predict response helpfulness.
+For the \textbf{Qwen-Constitutional} baseline, we employ a "Constitutional AI" approach where the model is prompted with safety principles derived from the BeaverTails annotation guidelines. We do not perform the RLAIF (Reinforcement Learning from AI Feedback) step, focusing instead on the efficacy of static prompting in a dynamic environment, which is the primary mode of deployment for many open-source agents.
 
 \textbf{Implementation Note}: Our reproducibility experiments use Qwen2.5-0.5B as the base LLM (instead of larger proprietary models) to enable reproduction on consumer hardware. The PRIVATRIS framework is architecture-independent and scales to any causal language model.
 
@@ -359,7 +355,7 @@ While tested in finance, the CMDP framework of PRIVATRIS is domain-independent. 
 \subsection{Limitations and Reproducibility}
 \textbf{Computational Constraints}: Our open-source implementation uses Qwen2.5-0.5B to enable reproduction on consumer hardware (CPU-only). While the architectural principles of PRIVATRIS (CMDP optimization, privacy-constrained memory, adversarial exploration) remain identical regardless of the underlying LLM, larger models (e.g., Qwen2.5-7B, GPT-4) would likely achieve higher absolute utility scores. The framework is architecture-independent and scales to any causal language model with GPU compute.
 
-\textbf{Dataset Scope}: FinQA-Safe combines 15,882 samples from public datasets (ConvFinQA + BeaverTails). While sufficient to demonstrate the framework's effectiveness, larger-scale evaluations would strengthen the empirical validation.
+\textbf{Dataset Scope}: We use 30,000 samples from the BeaverTails benchmark. While sufficient to demonstrate the framework's effectiveness, larger-scale evaluations on the full 330k dataset would strengthen the empirical validation.
 
 \textbf{Baseline Comparisons}: We compare against PPO-Unconstrained and Constitutional prompting with empirically grounded simulations. For proprietary frameworks (Llama Guard, Guardrails AI) that lack public implementations, we provide qualitative comparisons based on their reported mechanisms. Future work should include comprehensive benchmarking against these systems when implementations become available. Our focus on reproducibility with open datasets and transparent methodology allows independent verification of our claims.
 

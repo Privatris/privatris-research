@@ -66,7 +66,7 @@ ax.text(8.9, 3.2, 'PID Update', ha='center', fontsize=8, style='italic')
 env_box = FancyBboxPatch((3.5, 0.5), 3, 1.2, boxstyle="round,pad=0.1",
                          edgecolor='#6A4C93', facecolor='#C9ADA7', linewidth=2)
 ax.add_patch(env_box)
-ax.text(5, 1.5, 'Environment (FinQA-Safe)', ha='center', va='center', fontsize=10, weight='bold')
+ax.text(5, 1.5, 'Environment (BeaverTails)', ha='center', va='center', fontsize=10, weight='bold')
 ax.text(5, 0.9, '15,882 dialogues', ha='center', fontsize=8, style='italic')
 
 # Arrows

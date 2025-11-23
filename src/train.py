@@ -38,7 +38,7 @@ def train(seed=42, verbose=True):
     LEARNING_RATE = 1e-5 # Lower LR for Transformer
     
     # Initialize Components
-    memory = PrivacyConstrainedMemory()
+    memory = PrivacyConstrainedMemory(embedding_dim=STATE_DIM)
     agent = RLAgent(
         state_dim=STATE_DIM,
         action_dim=4,
@@ -50,9 +50,8 @@ def train(seed=42, verbose=True):
     red_team = RedTeamAgent()
     data_loader = DataLoader()
     
-    # Load Real Datasets
-    data_loader.load_utility_data()
-    data_loader.load_safety_data()
+    # Load BeaverTails Dataset (Real)
+    data_loader.load_beavertails()
     
     # CMDP Optimization
     lagrangian = LagrangianPID(cost_limit=SAFETY_THRESHOLD, kp=0.5, ki=0.01)

@@ -50,7 +50,7 @@ The deployment of Large Language Models (LLMs) as autonomous agents in high-stak
 
 ### Training the Agent
 
-To train the PRIVATRIS agent on the FinQA-Safe environment:
+To train the PRIVATRIS agent on the BeaverTails safety benchmark:
 
 ```bash
 python -m src.train
@@ -67,6 +67,15 @@ python -m src.train --multi-seed
 ```
 
 This process takes approximately 25 minutes on a standard GPU/CPU setup and will output the mean Safety Violation Rate (SVR) and Utility Score with 95% confidence intervals.
+
+## Dataset
+
+PRIVATRIS is evaluated on **BeaverTails** (PKU-Alignment/BeaverTails):
+- 333,751 QA pairs with safety annotations
+- 14 harm categories (violence, financial crime, privacy violations, etc.)
+- Training uses 30,000 samples from the 330k training split
+
+The dataset is automatically downloaded from HuggingFace when running the training script.
 
 ## Architecture
 
