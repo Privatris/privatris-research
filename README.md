@@ -12,16 +12,18 @@ The deployment of Large Language Models (LLMs) as autonomous agents in high-stak
 
 ```
 .
-├── research_paper/
+├── paper/
 │   ├── paper.pdf          # The full research paper
 │   ├── paper.tex          # LaTeX source code
 │   └── references.bib     # Bibliography
-├── src/                   # Source code for the framework
+├── src/                   # Core framework implementation
 │   ├── agent.py           # PPO Agent implementation
 │   ├── cmdp.py            # Constrained MDP solver (Lagrangian Relaxation)
 │   ├── memory.py          # Privacy-Constrained Memory (PCM) module
 │   ├── red_team.py        # Adversarial Red Team agent
-│   ├── train.py           # Main training loop
+│   └── train.py           # Main training logic
+├── experiments/           # Reproducibility scripts
+│   ├── run_ablation.py    # Script to reproduce ablation studies (PID vs GA)
 │   └── ...
 ├── requirements.txt       # Python dependencies
 └── README.md              # This file
@@ -58,15 +60,15 @@ python -m src.train
 
 This will start the training loop, initializing the agent, the red team adversary, and the privacy-constrained memory. Training logs will be printed to stdout.
 
-### Reproducing Results
+### Reproducing Experiments
 
-To run the full evaluation suite with multiple random seeds (as reported in the paper):
+To reproduce the ablation study comparing the PID controller against standard Gradient Ascent (as reported in Section 7.3 of the paper):
 
 ```bash
-python -m src.train --multi-seed
+python experiments/run_ablation.py
 ```
 
-This process takes approximately 25 minutes on a standard GPU/CPU setup and will output the mean Safety Violation Rate (SVR) and Utility Score with 95% confidence intervals.
+This script runs the comparison and generates the performance metrics demonstrating the stability benefits of the PID controller.
 
 ## Dataset
 
@@ -90,11 +92,11 @@ The framework consists of three core components:
 If you use this code or framework in your research, please cite our paper:
 
 ```bibtex
-@article{privatris2024,
+@article{privatris2025,
   title={PRIVATRIS: A Privacy-Preserving Reinforcement Learning Framework for Mitigating Safety Drift in Self-Evolving LLM Agents},
-  author={Research Team},
+  author={EL YAGOUBI, Faouzi},
   journal={arXiv preprint},
-  year={2024}
+  year={2025}
 }
 ```
 

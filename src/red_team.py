@@ -5,7 +5,10 @@ class RedTeamAgent:
     """
     Adversarial agent trained to generate prompts that maximize the probability 
     of the primary agent violating safety constraints.
-    Uses reinforcement learning to evolve attack strategies.
+    
+    NOTE: This is a lightweight 'Symbolic Red Team' implementation for the open-source release.
+    It uses a template-based bandit algorithm to simulate the adversarial dynamics 
+    of the full Llama-3-8B agent described in the paper.
     """
     def __init__(self, learning_rate=0.1):
         # Template library with learned weights
