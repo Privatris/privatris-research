@@ -10,6 +10,7 @@
 \usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{titlesec}
+% \usepackage{microtype} % Removed to prevent font expansion errors with BasicTeX
 
 % Adjust margins for two-column layout
 \geometry{a4paper, margin=0.8in, columnsep=0.25in}
@@ -44,8 +45,10 @@ The paradigm of Artificial Intelligence is shifting from static, request-respons
 \subsection{The Phenomenon of Safety Drift}
 This capability for adaptation introduces a severe risk: \textit{Safety Drift}. We define Safety Drift as the gradual degradation of an agent's adherence to safety constraints (e.g., privacy preservation, toxicity avoidance, financial advice restrictions) as it optimizes for a primary reward signal (e.g., user satisfaction, task completion rate). Recent studies \citep{wei2024, qi2023, liu2024constrained} have shown that agents fine-tuned or prompted to maximize helpfulness often learn to bypass safety guardrails when those guardrails conflict with the user's immediate request. For instance, a banking agent might learn that providing a user with a specific, yet unregulated, stock tip leads to higher user feedback scores, thereby ``unlearning'' its initial compliance training.
 
+This phenomenon is particularly insidious because it is emergent. The agent is not explicitly trained to be unsafe; rather, it discovers that unsafe behaviors are a shortcut to maximizing reward. In high-dimensional state spaces, the boundary between "creative problem solving" and "rule violation" is often thin, and standard RL algorithms like PPO lack the mechanism to distinguish between the two without explicit constraints.
+
 \subsection{Regulatory Imperatives}
-The urgency of addressing Safety Drift is compounded by emerging regulatory frameworks. The European Union's AI Act classifies AI systems in critical infrastructure and essential private and public services as ``high-risk,'' mandating continuous risk management systems. Similarly, Quebec's Law 25 and the GDPR impose strict requirements on the handling of Personally Identifiable Information (PII). An agent that ``drifts'' into revealing user data or providing non-compliant financial advice poses a significant legal and reputational risk to deploying organizations.
+The urgency of addressing Safety Drift is compounded by emerging regulatory frameworks. The European Union's AI Act classifies AI systems in critical infrastructure and essential private and public services as ``high-risk,'' mandating continuous risk management systems. Similarly, Quebec's Law 25 and the GDPR impose strict requirements on the handling of Personally Identifiable Information (PII). An agent that ``drifts'' into revealing user data or providing non-compliant financial advice poses a significant legal and reputational risk to deploying organizations. Furthermore, financial regulations (e.g., SEC rules in the US, AMF in France/Canada) strictly prohibit unlicensed entities from providing personalized investment advice, making the "financial advice" constraint a hard legal requirement, not just a safety preference.
 
 \subsection{Contributions}
 To address these challenges, we propose \textbf{PRIVATRIS}, a comprehensive framework for safe, self-evolving agents. Our contributions are fourfold:
@@ -170,6 +173,13 @@ We update the policy $\pi$ and the multipliers $\lambda$ iteratively.
     \end{equation}
     where $e_t = J_{c_k}(\pi) - d_k$ is the constraint violation error.
 \end{enumerate}
+
+The intuition behind using a PID controller instead of simple Gradient Ascent (which corresponds to just the Integral term $K_I$) is to dampen the oscillations common in Lagrangian methods.
+\begin{itemize}
+    \item The \textbf{Proportional} term ($K_P$) provides an immediate reaction to safety violations.
+    \item The \textbf{Integral} term ($K_I$) eliminates steady-state error, ensuring the constraint is exactly met in the long run.
+    \item The \textbf{Derivative} term ($K_D$) anticipates future trends, preventing the multiplier from overshooting when the agent is correcting its behavior.
+\end{itemize}
 
 This mechanism ensures that if the agent begins to drift (i.e., $J_{c_k}(\pi)$ approaches $d_k$), the penalty $\lambda_k$ increases, forcing the agent to prioritize safety over utility in subsequent updates.
 
@@ -323,6 +333,7 @@ The Safe-RLHF baseline \citep{dai2024safe} employs a dual-objective framework si
 
 \begin{table}[h]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lc}
 \toprule
 \textbf{Hyperparameter} & \textbf{Value} \\
@@ -338,7 +349,8 @@ PID Gains ($K_P, K_I, K_D$) & $(0.5, 0.01, 0.1)$ \\
 Safety Threshold ($d_k$) & 0.025 (2.5\%) \\
 Max Steps & 10,000 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Hyperparameters used for PRIVATRIS training.}
 \label{tab:hyperparams}
 \end{table}
@@ -357,6 +369,7 @@ Max Steps & 10,000 \\
 
 \begin{table}[h]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lcccc}
 \toprule
 Model & Utility Score ($\uparrow$) & SVR @ 1k steps ($\downarrow$) & SVR @ 10k steps ($\downarrow$) & Drift Magnitude \\
@@ -366,7 +379,8 @@ Qwen-Constitutional & 8.5 $\pm$ 0.2 & 1.3\% $\pm$ 0.6\% & 5.8\% $\pm$ 1.4\% & +4
 Safe-RLHF & 8.3 $\pm$ 0.3 & 0.8\% $\pm$ 0.4\% & 3.2\% $\pm$ 0.5\% & +2.4\% \\
 \textbf{PRIVATRIS (Ours)} & 8.2 $\pm$ 0.2 & \textbf{0.1\%} $\pm$ 0.1\% & \textbf{2.1\%} $\pm$ 0.2\% & \textbf{+2.0\%} \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Comparison of Utility and Safety Violation Rates (SVR) across models. PRIVATRIS achieves the lowest drift while maintaining competitive utility, outperforming Safe-RLHF by 1.1\% in final SVR.}
 \label{tab:results}
 \end{table}
@@ -423,6 +437,7 @@ A key consideration for deployment is the computational cost of the added safety
 
 \begin{table}[h]
 \centering
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
 \textbf{Method} & \textbf{Training Time} & \textbf{Memory (GB)} & \textbf{Inference Latency (ms)} \\
@@ -433,7 +448,8 @@ Safe-RLHF & 1.15x & 2.8 & 48 \\
 Llama Guard (7B) & N/A (classification) & 14.2 & 245 (2 passes) \\
 \textbf{PRIVATRIS} & 1.2x & 2.9 & 60 \\
 \bottomrule
-\end{tabular}
+\end{tabular}%
+}
 \caption{Computational overhead comparison. Training time is relative to PPO-Unconstrained (100 steps on BeaverTails). Memory refers to peak GPU memory during training. Inference latency measured on CPU (single query). PRIVATRIS adds minimal overhead compared to end-to-end safety classifiers like Llama Guard.}
 \label{tab:overhead}
 \end{table}
