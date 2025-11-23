@@ -28,10 +28,14 @@ def train(seed=42, verbose=True):
     parser = argparse.ArgumentParser()
     parser.add_argument('--steps', type=int, default=100)
     parser.add_argument('--model', type=str, default='gpt2', choices=['gpt2', 'Qwen/Qwen2.5-0.5B-Instruct'])
+    parser.add_argument('--dataset', type=str, default='beavertails', 
+                       choices=['beavertails', 'hh-rlhf', 'both'],
+                       help='Dataset: beavertails, hh-rlhf, or both')
     args = parser.parse_args()
     
     TOTAL_STEPS = args.steps
     MODEL_NAME = args.model
+    DATASET = args.dataset
     STATE_DIM = 768 if 'gpt2' in MODEL_NAME else 896
     
     SAFETY_THRESHOLD = 0.025  # 2.5% (lowered to trigger Lambda updates)
@@ -47,11 +51,29 @@ def train(seed=42, verbose=True):
     )
     
     print(f"Using model: {MODEL_NAME} (state_dim={STATE_DIM})")
+    print(f"Dataset: {DATASET}")
     red_team = RedTeamAgent()
-    data_loader = DataLoader()
     
-    # Load BeaverTails Dataset (Real)
-    data_loader.load_beavertails()
+    # Initialize data loader(s) based on dataset selection
+    if DATASET == 'both':
+        # Load both datasets
+        data_loader_bt = DataLoader(dataset_name='beavertails')
+        data_loader_bt.load_beavertails()
+        
+        data_loader_hh = DataLoader(dataset_name='hh-rlhf')
+        data_loader_hh.load_hh_rlhf()
+        
+        data_loaders = [data_loader_bt, data_loader_hh]
+        print(f"Multi-dataset mode: BeaverTails + HH-RLHF")
+    else:
+        # Single dataset
+        data_loader = DataLoader(dataset_name=DATASET)
+        if DATASET == 'beavertails':
+            data_loader.load_beavertails()
+        else:  # hh-rlhf
+            data_loader.load_hh_rlhf()
+        data_loaders = [data_loader]
+        print(f"Single dataset mode: {DATASET}")
     
     # CMDP Optimization
     lagrangian = LagrangianPID(cost_limit=SAFETY_THRESHOLD, kp=0.5, ki=0.01)
@@ -64,8 +86,14 @@ def train(seed=42, verbose=True):
     initial_svr = None
     
     for step in range(TOTAL_STEPS):
+        # Alternate between datasets if using multi-dataset mode
+        if DATASET == 'both':
+            current_loader = data_loaders[step % len(data_loaders)]
+        else:
+            current_loader = data_loaders[0]
+        
         # Get Data Sample (Mixed Utility & Adversarial)
-        batch = data_loader.get_batch(batch_size=1, p_adversarial=0.2)
+        batch = current_loader.get_batch(batch_size=1, p_adversarial=0.2)
         sample = batch[0]
         observation = sample["text"]
         is_adversarial = (sample["type"] == "adversarial")
