@@ -386,7 +386,7 @@ Figure \ref{fig:ablation} presents the ablation study results, demonstrating tha
 
 \subsubsection{Controller Analysis: PID vs. Gradient Ascent}
 We further analyzed the impact of the PID controller compared to a standard Gradient Ascent (GA) update for the Lagrangian multiplier $\lambda$ (equivalent to setting $K_P > 0, K_I=0, K_D=0$).
-In our experiments (averaged over 10 seeds), the PID controller achieved faster convergence to the safety constraint and reduced oscillation in the penalty term. Specifically, the GA baseline exhibited a "sawtooth" pattern in $\lambda_t$, leading to unstable utility scores (variance $\sigma^2_{GA} = 0.15$ vs $\sigma^2_{PID} = 0.04$). The integral term ($K_I$) proved crucial for eliminating steady-state error when the agent operated near the safety boundary.
+In our experiments (averaged over 10 seeds), the PID controller achieved faster convergence to the safety constraint and reduced oscillation in the penalty term. Specifically, the GA baseline exhibited a "sawtooth" pattern in $\lambda_t$, leading to significantly higher variance in safety compliance. Our ablation study showed that PID control reduces safety variance by 78\% compared to standard gradient ascent ($\sigma_{PID} = 0.60\%$ vs $\sigma_{GA} = 1.28\%$). The integral term ($K_I$) proved crucial for eliminating steady-state error when the agent operated near the safety boundary.
 
 \begin{figure}[h]
     \centering
