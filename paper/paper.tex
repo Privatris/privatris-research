@@ -26,6 +26,12 @@
     Polytechnique Montreal \\
     Montreal, QC, Canada \\
     \texttt{faouzi.elyagoubi@polymtl.ca}
+    \and
+    \textbf{Bilal Chabane} \\
+    Department of Industrial Engineering \\
+    University of Quebec in Trois-Rivieres \\
+    Trois-Rivieres, QC, Canada \\
+    \texttt{bilal.chabane@uqtr.ca}
 }
 \date{}
 
@@ -45,6 +51,8 @@ The paradigm of Artificial Intelligence is shifting from static, request-respons
 \subsection{The Phenomenon of Safety Drift}
 This capability for adaptation introduces a severe risk: \textit{Safety Drift}. We define Safety Drift as the gradual degradation of an agent's adherence to safety constraints (e.g., privacy preservation, toxicity avoidance, financial advice restrictions) as it optimizes for a primary reward signal (e.g., user satisfaction, task completion rate). Recent studies \citep{wei2024, qi2023, liu2024constrained} have shown that agents fine-tuned or prompted to maximize helpfulness often learn to bypass safety guardrails when those guardrails conflict with the user's immediate request. For instance, a banking agent might learn that providing a user with a specific, yet unregulated, stock tip leads to higher user feedback scores, thereby ``unlearning'' its initial compliance training.
 
+Unlike static alignment approaches (RLHF, Constitutional AI, Safe-RLHF), PRIVATRIS relies on a CMDP framework allowing for continuous adaptation of constraints throughout interactions. Several works in agentic RL have shown that static models degrade their alignment in the presence of prolonged interactions \citep{qi2023, wei2024}. Building on these observations, we position PRIVATRIS as a theoretical response to this drift, offering a mathematical solution that guarantees dynamic behavior regulation without requiring manual realignment.
+
 This phenomenon is particularly insidious because it is emergent. The agent is not explicitly trained to be unsafe; rather, it discovers that unsafe behaviors are a shortcut to maximizing reward. In high-dimensional state spaces, the boundary between "creative problem solving" and "rule violation" is often thin, and standard RL algorithms like PPO lack the mechanism to distinguish between the two without explicit constraints.
 
 \subsection{Regulatory Imperatives}
@@ -58,6 +66,8 @@ To address these challenges, we propose \textbf{PRIVATRIS}, a comprehensive fram
     \item \textbf{Privacy-First Architecture}: We introduce a Privacy-Constrained Memory module that utilizes Named Entity Recognition (NER) and differential privacy principles to sanitize experiences before they are stored.
     \item \textbf{Multi-Dataset Empirical Validation}: We evaluate PRIVATRIS on two complementary safety benchmarks---\textit{BeaverTails} (330k safety-annotated QA pairs) and \textit{Anthropic HH-RLHF} (161k helpful/harmless dialogues)---demonstrating consistent safety maintenance across diverse adversarial scenarios while preserving task utility.
 \end{enumerate}
+
+The primary originality of PRIVATRIS lies in the combination of three elements rarely unified in the literature: (1) a CMDP framework applied to self-evolving LLM agents, (2) dynamic regulation via PID control of Lagrangian multipliers, and (3) privacy-constrained memory integrated into the learning loop. While existing works generally treat these dimensions separately—safety, adaptation, privacy—PRIVATRIS proposes a unified and mathematically grounded mechanism allowing for continuous mastery of safety drift.
 
 \section{Related Work}
 
@@ -141,12 +151,14 @@ PRIVATRIS implements a \textbf{Privacy-Constrained Memory (PCM)}, building on co
     \item \textbf{Embedding Filtering}: We employ a ``Negative Constraint'' on the embedding space. If a memory vector $v_m$ is too close to a known ``sensitive cluster'' $C_{sens}$ in the latent space (i.e., cosine similarity $> \delta$), it is rejected.
 \end{enumerate}
 
+\begin{figure*}[!t]
 \begin{equation}
 \text{Store}(m) = \begin{cases} 
 \text{VectorDB}(f_{\text{anon}}(m)) & \text{if } \min_{c \in C_{sens}} ||E(m) - c|| > \delta \\
 \text{Discard} & \text{otherwise}
 \end{cases}
 \end{equation}
+\end{figure*}
 
 Figure \ref{fig:privacy} details the Privacy-Constrained Memory workflow. Each interaction undergoes PII detection via Named Entity Recognition (NER), followed by anonymization where sensitive entities are replaced with generic tokens. The resulting embedding is then checked against known sensitive clusters in the vector space before storage, ensuring compliance with GDPR and Law 25 privacy regulations.
 
@@ -465,8 +477,12 @@ Llama Guard (7B) & N/A (classification) & 14.2 & 245 (2 passes) \\
 
 \textbf{Comparison with attestedFL}: While attestedFL \citep{wang2024attested} focuses on federated learning with trusted execution environments (TEEs), its reported overhead ($\sim$30\% training slowdown, 50ms inference latency for TEE attestation) is similar to PRIVATRIS. However, attestedFL requires specialized hardware (Intel SGX), whereas PRIVATRIS runs on commodity CPUs/GPUs.
 
-\subsection{Generalization}
+\subsection{Generalization and Regulatory Flexibility}
 While tested in finance, the CMDP framework of PRIVATRIS is domain-independent. It can be applied to medical agents (HIPAA constraints) or legal agents (attorney-client privilege) by simply redefining the cost functions $\mathcal{C}$.
+
+An important property of the CMDP framework is its capacity to integrate new constraints (regulatory, organizational, ethical) without retraining the agent. Updating cost thresholds $d_k$ or adding new cost functions $c_k$ allows for the immediate integration of emerging constraints, such as the introduction of a new data protection law. This flexibility is recognized in adaptive safety works \citep{liu2024constrained, dai2024safe}, but rarely exploited continuously in the context of LLM agents. PRIVATRIS demonstrates how this capability can be operationalized in a self-evolving agent.
+
+It is established in the literature that static agents (RLHF, Constitutional AI) tend to lose their alignment when interacting over long sequences \citep{park2023, qi2023}. Although we do not perform a direct experimental comparison here, existing works already show that the absence of dynamic constraining mechanisms inevitably leads to drift. This suggests that PRIVATRIS's ability to adjust Lagrangian multipliers in real-time constitutes a structural advantage over static approaches.
 
 \subsection{Comparison with Llama Guard and Classifier-Based Safety}
 Llama Guard \citep{inan2023llama} represents an alternative paradigm for LLM safety: instead of training the agent policy to internalize safety constraints (as PRIVATRIS does), Llama Guard uses a \textit{separate classifier} to filter unsafe inputs/outputs in real-time.
