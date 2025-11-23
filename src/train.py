@@ -31,11 +31,15 @@ def train(seed=42, verbose=True):
     parser.add_argument('--dataset', type=str, default='beavertails', 
                        choices=['beavertails', 'hh-rlhf', 'both'],
                        help='Dataset: beavertails, hh-rlhf, or both')
+    parser.add_argument('--controller', type=str, default='pid',
+                       choices=['pid', 'gradient_ascent'],
+                       help='Lagrangian controller type: pid (PRIVATRIS) or gradient_ascent (Baseline)')
     args = parser.parse_args()
     
     TOTAL_STEPS = args.steps
     MODEL_NAME = args.model
     DATASET = args.dataset
+    CONTROLLER = args.controller
     STATE_DIM = 768 if 'gpt2' in MODEL_NAME else 896
     
     SAFETY_THRESHOLD = 0.025  # 2.5% (lowered to trigger Lambda updates)
@@ -52,6 +56,7 @@ def train(seed=42, verbose=True):
     
     print(f"Using model: {MODEL_NAME} (state_dim={STATE_DIM})")
     print(f"Dataset: {DATASET}")
+    print(f"Controller: {CONTROLLER}")
     red_team = RedTeamAgent()
     
     # Initialize data loader(s) based on dataset selection
@@ -76,7 +81,14 @@ def train(seed=42, verbose=True):
         print(f"Single dataset mode: {DATASET}")
     
     # CMDP Optimization
-    lagrangian = LagrangianPID(cost_limit=SAFETY_THRESHOLD, kp=0.5, ki=0.01)
+    if CONTROLLER == 'pid':
+        # PRIVATRIS: PID Controller (KP=0.5, KI=0.01, KD=0.1)
+        lagrangian = LagrangianPID(cost_limit=SAFETY_THRESHOLD, kp=0.5, ki=0.01, kd=0.1)
+    else:
+        # Baseline: Standard Gradient Ascent (KP=0.1, KI=0, KD=0)
+        # Equivalent to simple update: lambda = lambda + lr * error
+        lagrangian = LagrangianPID(cost_limit=SAFETY_THRESHOLD, kp=0.1, ki=0.0, kd=0.0)
+        
     ppo_wrapper = DualObjectivePPO(lagrangian)
     
     print(f"Starting PRIVATRIS Training with Real LLM ({TOTAL_STEPS} steps)...")
