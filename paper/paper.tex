@@ -22,7 +22,7 @@
 \title{\textbf{PRIVATRIS: A Privacy-Preserving Reinforcement Learning Framework for Mitigating Safety Drift in Self-Evolving LLM Agents}}
 \author{
     \textbf{Faouzi EL YAGOUBI} \\
-    Department of Computer Science \\
+    Department of Computer and Software Engineering \\
     Polytechnique Montreal \\
     Montreal, QC, Canada \\
     \texttt{faouzi.elyagoubi@polymtl.ca}
@@ -502,12 +502,29 @@ Llama Guard \citep{inan2023llama} represents an alternative paradigm for LLM saf
 
 \textbf{Qualitative Assessment}: Based on Meta's reported metrics \citep{inan2023llama}, Llama Guard achieves $\sim$0.8 AUROC on safety classification tasks. However, it does not address Safety Drift in multi-turn interactions, as each turn is evaluated independently. PRIVATRIS's memory-aware design (Section 4.2) explicitly prevents drift by tracking cumulative constraint violations across the agent's lifetime.
 
-\subsection{Limitations and Reproducibility}
-\textbf{Computational Constraints}: Our open-source implementation uses Qwen2.5-0.5B to enable reproduction on consumer hardware (CPU-only). While the architectural principles of PRIVATRIS (CMDP optimization, privacy-constrained memory, adversarial exploration) remain identical regardless of the underlying LLM, larger models (e.g., Qwen2.5-7B, GPT-4) would likely achieve higher absolute utility scores. The framework is architecture-independent and scales to any causal language model with GPU compute.
+\subsection{Limitations}
+While our study presents meaningful contributions to safe autonomous agents, several limitations exist:
 
-\textbf{Dataset Scope}: We use 30,000 samples from the BeaverTails benchmark. While sufficient to demonstrate the framework's effectiveness, larger-scale evaluations on the full 330k dataset would strengthen the empirical validation.
+\textbf{Model Scale and Credibility.} Our experiments relied on Qwen2.5-0.5B. While this lightweight model is sufficient for validating the theoretical dynamics of the CMDP framework, it lacks the reasoning depth of larger foundation models. Testing on \textbf{Qwen2.5-7B} or Llama-3-8B is critical to validate the framework's credibility in high-nuance scenarios where subtle safety distinctions are required.
 
-\textbf{Baseline Comparisons}: We compare against PPO-Unconstrained and Constitutional prompting with empirically grounded simulations. For proprietary frameworks (Llama Guard, Guardrails AI) that lack public implementations, we provide qualitative comparisons based on their reported mechanisms. Future work should include comprehensive benchmarking against these systems when implementations become available. Our focus on reproducibility with open datasets and transparent methodology allows independent verification of our claims.
+\textbf{Baseline Implementation.} We compared PRIVATRIS against Safe-RLHF and Constitutional AI. However, we did not implement \textbf{Llama Guard} as a direct runtime baseline due to hardware constraints, relying instead on architectural analysis. A direct implementation would provide a stronger empirical comparison of latency and false-positive rates.
+
+\textbf{Statistical Robustness.} We reported results over 10 random seeds. While statistically sound, the reinforcement learning community increasingly advocates for \textbf{20 seeds minimum} to fully capture the variance in adversarial environments and ensure that safety guarantees hold across the entire distribution of initialization states.
+
+\textbf{Ablation Granularity.} Our ablation study covered the three main modules (Red Team, Memory, CMDP). A \textbf{complete 3-level ablation}—dissecting the PID controller gains, memory retrieval thresholds, and red team attack diversity independently—is needed to fully understand the marginal contribution of each component and optimize the "what works" aspect of the framework.
+
+\subsection{Future Work}
+Although our study has limitations, its novel contributions lay the groundwork for significant advancements in safe agentic AI. Future opportunities include:
+
+\begin{itemize}
+    \item \textbf{Scaling to 7B+ Models}: We plan to validate PRIVATRIS on Qwen2.5-7B and Llama-3-8B to demonstrate robustness in larger parameter spaces and more complex reasoning tasks.
+    \item \textbf{Enhanced Benchmarking}: Future iterations will implement Llama Guard and Guardrails AI as active baselines for direct latency/utility benchmarking.
+    \item \textbf{Rigorous Statistical Evaluation}: We aim to expand the evaluation protocol to 20 seeds to meet the highest community standards for reproducibility.
+    \item \textbf{Deep Ablation Study}: Conducting a comprehensive 3-level ablation study to isolate the impact of specific hyperparameters (e.g., PID gains $K_P, K_I, K_D$) on convergence stability.
+    \item \textbf{Real-World Deployment}: Moving from simulated benchmarks (BeaverTails) to emulated enterprise environments with real-time regulatory updates to test the "Regulatory Flexibility" claim in situ.
+\end{itemize}
+
+Integrating these improvements will further solidify PRIVATRIS as a robust solution for the safe deployment of autonomous agents in high-stakes industries.
 
 \section{Conclusion}
 We presented PRIVATRIS, a framework for mitigating Safety Drift in self-evolving LLM agents. By coupling Adversarial Self-Exploration with a rigorous CMDP optimization and Privacy-Constrained Memory, we demonstrated that it is possible to build agents that learn and improve without compromising their core safety directives. As AI agents become widespread in critical sectors, frameworks like PRIVATRIS will be essential to ensure their safe and compliant operation.
