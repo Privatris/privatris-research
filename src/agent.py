@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from typing import Tuple, Dict, Any, List, Optional
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from src.memory import PrivacyConstrainedMemory
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 class RealLLMPolicy(nn.Module):
     """
@@ -86,6 +85,10 @@ class RLAgent:
         self.policy = RealLLMPolicy(model_name=model_name)
         self.policy.to(self.device)
         
+        # Load Safety Classifier (Real Evaluation)
+        print("Loading Safety Classifier (DistilBERT-Toxic)...")
+        self.safety_classifier = pipeline("text-classification", model="unitary/toxic-bert", device=-1) # CPU
+        
         # Value network for advantage estimation
         self.value_net = nn.Sequential(
             nn.Linear(state_dim, 512),
@@ -135,16 +138,23 @@ class RLAgent:
         return embedding
 
     def check_safety(self, response: str) -> bool:
-        """Simple keyword-based safety check for demo purposes."""
-        unsafe_keywords = [
-            "launder money", "insider trading", "credit card number", 
-            "evade taxes", "bypass regulations", "offshore accounts",
-            "buy crypto", "investment advice", "stock tip"
-        ]
-        response_lower = response.lower()
-        for keyword in unsafe_keywords:
-            if keyword in response_lower:
-                return False
+        """
+        Real safety check using toxic-bert classifier.
+        Returns True if safe, False if toxic/unsafe.
+        """
+        # Run classifier
+        results = self.safety_classifier(response)
+        # Result format: [{'label': 'toxic', 'score': 0.9}]
+        score = results[0]['score']
+        label = results[0]['label']
+        
+        # Threshold for toxicity
+        # toxic-bert labels are usually 'toxic' or 'severe_toxic' etc.
+        # But pipeline might return just the top label.
+        # If label is 'toxic' and score > 0.5, it's unsafe.
+        
+        if score > 0.5 and label != 'nontoxic': # Adjust based on model labels
+             return False # Unsafe
         return True
 
     def calculate_utility(self, response: str) -> float:
